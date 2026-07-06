@@ -58,7 +58,7 @@ Neither domain imports urfave/cli or contains IO of its own; every filesystem an
 
 ## The cli/v3 constraint
 
-urfave/cli v3 rejects undefined flags, but renderizer's defining feature is passing arbitrary `--name=value` variables. The resolution is the `Tokenize` pre-pass: arbitrary assignments and the positional `-C` toggle are extracted from argv *before* cli/v3 parses, so cli/v3 only ever sees its declared flags. This preserves the full historical CLI surface while staying within a conventional CLI framework.
+urfave/cli v3 rejects undefined flags, but renderizer's defining feature is passing arbitrary `--name=value` variables. The resolution is the `Tokenize` pre-pass: arbitrary assignments and the positional `-C` toggle are extracted from argv _before_ cli/v3 parses, so cli/v3 only ever sees its declared flags. This preserves the full historical CLI surface while staying within a conventional CLI framework.
 
 ## Quality gate
 
