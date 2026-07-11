@@ -2,19 +2,19 @@
 title: Architecture
 ---
 
-# Architecture
+## Architecture
 
 renderizer renders Go `text/template` files from three merged variable sources — command-line flags, YAML settings, and the process environment — and analyzes templates to infer their input data model. It follows the [`gomatic/template.cli`](https://github.com/gomatic/template.cli) layered structure.
 
-## Public library
+### Public library
 
 The module root (`package renderizer`, [`renderizer.go`](../renderizer.go)) is a thin, minimal facade for embedding the engine in other Go programs (e.g. `lono`): `Funcs` (the Sprig + funcmap set, extensible by the caller), `Render`, and `Analyze`. It wraps `internal/template` and `internal/inspect` only — the implementation packages stay `internal/`, so the public surface is exactly those three functions plus their value types (`MissingKey`, `Name`, `Template`). The CLI and the library share one engine; neither tier depends on the other.
 
-## Tiers
+### Tiers
 
 Dependencies flow one direction: composition root → app → domain → implementation. No tier imports one to its left.
 
-### Composition root — `cmd/renderizer`
+#### Composition root — `cmd/renderizer`
 
 `main.go` is the only place that touches the outside world. It:
 
@@ -25,7 +25,7 @@ Dependencies flow one direction: composition root → app → domain → impleme
 
 It holds no behavior and is excluded from the 100% coverage gate (`COVER_PKGS` in the `Makefile`); its behavior is verified by the end-to-end tests in `main_test.go`.
 
-### app — `internal/app`
+#### app — `internal/app`
 
 The CLI command definitions and the shared seams between the framework and the domain.
 
@@ -35,7 +35,7 @@ The CLI command definitions and the shared seams between the framework and the d
 - **`exit.go`** — `ExitCode` (sentinel error → historical exit code: read=2, parse=4, execute=8, panic=15, otherwise 1).
 - **`runtime.go`** — `Runtime`, the injected IO seams and parsed arguments passed from the composition root to each command.
 
-### domain — `internal/domain/{render,analyze}`
+#### domain — `internal/domain/{render,analyze}`
 
 Orchestration only. `Run(ctx, logger, cfg) (Result, error)`:
 
@@ -47,7 +47,7 @@ Orchestration only. `Run(ctx, logger, cfg) (Result, error)`:
 
 Neither domain imports urfave/cli or contains IO of its own; every filesystem and environment access goes through an injected seam on its `Config`, so every branch is reachable from a test.
 
-### implementation
+#### implementation
 
 - **`internal/variables`** — the cli/v3-compatible argument handling. `Tokenize` splits argv into known flags (for cli/v3), arbitrary `--name=value` assignments, and template files. `Assignments` builds a typed, possibly nested context from the assignments, honoring the `-C` capitalization toggle, dotted nesting, repeated-name lists, and automatic value typing.
 - **`internal/settings`** — loads and merges YAML settings files, retyping their values to match command-line typing.
@@ -56,10 +56,10 @@ Neither domain imports urfave/cli or contains IO of its own; every filesystem an
 - **`internal/inspect`** — walks a template's parse tree to infer its required input data model and renders it as a YAML skeleton (the `analyze` command).
 - **`internal/constants`** — renderizer's sentinel error values, declared as constants of [`gomatic/go-error`](https://github.com/gomatic/go-error)'s `Const` type (the shared `errors.Is`-matchable mechanism).
 
-## The cli/v3 constraint
+### The cli/v3 constraint
 
 urfave/cli v3 rejects undefined flags, but renderizer's defining feature is passing arbitrary `--name=value` variables. The resolution is the `Tokenize` pre-pass: arbitrary assignments and the positional `-C` toggle are extracted from argv _before_ cli/v3 parses, so cli/v3 only ever sees its declared flags. This preserves the full historical CLI surface while staying within a conventional CLI framework.
 
-## Quality gate
+### Quality gate
 
 `make check` runs `go vet`, `golangci-lint` (cognitive complexity ≤ 7), `staticcheck`, `govulncheck`, and a 100%-statement-coverage assertion over every package except `cmd/`. The tools are pinned in the `go.mod` `tool` stanza and run via `go tool`.
